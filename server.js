@@ -1,47 +1,41 @@
-// server.js
+const http = require('http');
+const fs = require("fs");
 
-// set up ======================================================================
-// get all the tools we need
-var express  = require('express');
-var app      = express();
-var port     = process.env.PORT || 8080;
-var mongoose = require('mongoose');
-var passport = require('passport');
-var flash    = require('connect-flash');
+http.createServer((request, response) => {
+    console.log('Running...');
+    const { headers, method, url } = request;
+let body = [];
+request.on('error', (err) => {
+    console.error(err);
+}).on('data', (chunk) => {
+    body.push(chunk);
+}).on('end', () => {
+    body = Buffer.concat(body).toString();
+// BEGINNING OF NEW STUFF
 
-var morgan       = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser   = require('body-parser');
-var session      = require('express-session');
+response.on('error', (err) => {
+    console.error(err);
+});
 
-var configDB = require('./config/database.js');
+response.statusCode = 200;
+response.setHeader('Content-Type', 'application/json');
+// Note: the 2 lines above could be replaced with this next one:
+// response.writeHead(200, {'Content-Type': 'application/json'})
 
-// configuration ===============================================================
-mongoose.connect(configDB.url); // connect to our database
+const responseBody = { headers, method, url, body };
 
-require('./config/passport')(passport); // pass passport for configuration
+//response.write(JSON.stringify(responseBody));
+console.log("write-to-file (node-connector):");
+fs.writeFile('textresponse-8080.txt', JSON.stringify(responseBody.body), (error) => { /* handle error */ });
+console.log(responseBody);
+response.end();
+// Note: the 2 lines above could be replaced with this next one:
+// response.end(JSON.stringify(responseBody))
 
-// set up our express application
-app.use(morgan('dev')); // log every request to the console
-app.use(cookieParser()); // read cookies (needed for auth)
-app.use(bodyParser.json()); // get information from html forms
-app.use(bodyParser.urlencoded({ extended: true }));
+// END OF NEW STUFF
+});
 
-app.set('view engine', 'ejs'); // set up ejs for templating
 
-// required for passport
-app.use(session({
-    secret: 'ilovescotchscotchyscotchscotch', // session secret
-    resave: true,
-    saveUninitialized: true
-}));
-app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
-app.use(flash()); // use connect-flash for flash messages stored in session
+}).listen(8080);
 
-// routes ======================================================================
-require('./app/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
-
-// launch ======================================================================
-app.listen(port);
-console.log('The magic happens on port ' + port);
+console.log('Server running at 8080');
